@@ -11,9 +11,7 @@ keywords = ["futures", "async", "graphql", "viz"]
 categories = ["network-programming", "asynchronous"]
 
 [dependencies]
-viz-core = { version = "0.1.0-alpha.11", default-features = false, features = [
-	"ws",
-] }
+viz-core = { version = "0.1.0-alpha.11", features = ["ws"] }
 viz-utils = "0.1.0-alpha.11"
 
 async-graphql = "=2.9.15"
