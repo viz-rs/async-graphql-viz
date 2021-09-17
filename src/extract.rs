@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::io::ErrorKind;
-use std::io::{Seek, SeekFrom, Write};
 
 use async_graphql::{http::MultipartOptions, ParseRequestError};
 use viz_core::{http, types::Multipart, Context, Error, Extract, Result};
@@ -81,23 +80,24 @@ impl Extract for GraphQLBatchRequest {
                 });
                 Ok(Self(async_graphql::BatchRequest::Single(res?)))
             } else {
-                let multipart = cx.multipart().map_err(|_| {
-                    ParseRequestError::Io(std::io::Error::new(
-                        ErrorKind::Other,
-                        "body has been taken by another extractor".to_string(),
+                if let Ok(multipart) = cx.multipart() {
+                    if let Ok(mut state) = multipart.state().lock() {
+                        let opts = MultipartOptions::default();
+                        let mut limits = state.limits_mut();
+                        limits.file_size = opts.max_file_size;
+                        limits.files = opts.max_num_files;
+                    }
+
+                    Ok(Self(receive_batch_multipart(multipart).await.map_err(
+                        |e| ParseRequestError::InvalidRequest(Box::from(e)),
+                    )?))
+                } else {
+                    Ok(Self(
+                        cx.json::<async_graphql::BatchRequest>()
+                            .await
+                            .map_err(|e| ParseRequestError::InvalidRequest(Box::from(e)))?,
                     ))
-                })?;
-
-                if let Ok(mut state) = multipart.state().lock() {
-                    let opts = MultipartOptions::default();
-                    let mut limits = state.limits_mut();
-                    limits.file_size = opts.max_file_size;
-                    limits.files = opts.max_num_files;
                 }
-
-                Ok(Self(receive_batch_multipart(multipart).await.map_err(
-                    |e| ParseRequestError::InvalidRequest(Box::from(e)),
-                )?))
             }
         })
     }
@@ -155,10 +155,7 @@ async fn receive_batch_multipart(mut multipart: Multipart) -> Result<async_graph
                 if !name.is_empty() {
                     if let Some(filename) = field.filename.to_owned() {
                         let mut file = tempfile::tempfile().map_err(ParseRequestError::Io)?;
-                        while let Some(buf) = field.try_next().await? {
-                            file.write(&buf).map_err(ParseRequestError::Io)?;
-                        }
-                        file.seek(SeekFrom::Start(0))?;
+                        field.copy_to_file(&mut file).await?;
                         files.push((name, filename, Some(content_type.to_string()), file));
                     }
                 }

@@ -1,6 +1,6 @@
 [package]
 name = "async-graphql-viz"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Fangdun Tsai <cfddream@gmail.com>"]
 edition = "2018"
 description = "async-graphql for viz"
@@ -12,9 +12,9 @@ categories = ["network-programming", "asynchronous"]
 
 [dependencies]
 viz-core = { version = "0.1.0-alpha.11", features = ["ws"] }
-viz-utils = "0.1.0-alpha.11"
+viz-utils = { version = "0.1.0-alpha.11" }
 
-async-graphql = "=2.9.15"
+async-graphql = "=2.10.0"
 mime = "0.3.16"
 tempfile = "3.2.0"
 
