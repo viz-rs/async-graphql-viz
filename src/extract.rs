@@ -1,11 +1,11 @@
 use std::collections::HashMap;
-use std::io::ErrorKind;
 
 use async_graphql::{http::MultipartOptions, ParseRequestError};
+
 use viz_core::{http, types::Multipart, Context, Error, Extract, Result};
 use viz_utils::{
     futures::{future::BoxFuture, TryStreamExt},
-    serde::{json, urlencoded},
+    serde::json,
 };
 
 /// Extractor for GraphQL request.
@@ -71,14 +71,11 @@ impl Extract for GraphQLBatchRequest {
 
     fn extract(cx: &mut Context) -> BoxFuture<'_, Result<Self, Self::Error>> {
         Box::pin(async move {
-            if let (&http::Method::GET, uri) = (cx.method(), cx.uri()) {
-                let res = urlencoded::from_str(uri.query().unwrap_or_default()).map_err(|err| {
-                    ParseRequestError::Io(std::io::Error::new(
-                        ErrorKind::Other,
-                        format!("failed to parse graphql request from uri query: {}", err),
-                    ))
-                });
-                Ok(Self(async_graphql::BatchRequest::Single(res?)))
+            if http::Method::GET == cx.method() {
+                Ok(Self(async_graphql::BatchRequest::Single(
+                    cx.query()
+                        .map_err(|e| ParseRequestError::InvalidRequest(Box::from(e)))?,
+                )))
             } else {
                 if let Ok(multipart) = cx.multipart() {
                     if let Ok(mut state) = multipart.state().lock() {
@@ -92,11 +89,9 @@ impl Extract for GraphQLBatchRequest {
                         |e| ParseRequestError::InvalidRequest(Box::from(e)),
                     )?))
                 } else {
-                    Ok(Self(
-                        cx.json::<async_graphql::BatchRequest>()
-                            .await
-                            .map_err(|e| ParseRequestError::InvalidRequest(Box::from(e)))?,
-                    ))
+                    Ok(Self(cx.json().await.map_err(|e| {
+                        ParseRequestError::InvalidRequest(Box::from(e))
+                    })?))
                 }
             }
         })
@@ -163,8 +158,7 @@ async fn receive_batch_multipart(mut multipart: Multipart) -> Result<async_graph
         }
     }
 
-    let mut request: async_graphql::BatchRequest =
-        request.ok_or(ParseRequestError::MissingOperatorsPart)?;
+    let mut request = request.ok_or(ParseRequestError::MissingOperatorsPart)?;
     let map = map.as_mut().ok_or(ParseRequestError::MissingMapPart)?;
 
     for (name, filename, content_type, file) in files {

@@ -1,8 +1,10 @@
-use std::borrow::Cow;
-use std::future::Future;
+use std::{borrow::Cow, future::Future};
 
-use async_graphql::http::{WebSocketProtocols, WsMessage};
-use async_graphql::{Data, ObjectType, Result, Schema, SubscriptionType};
+use async_graphql::{
+    http::{WebSocketProtocols, WsMessage},
+    Data, ObjectType, Result, Schema, SubscriptionType,
+};
+
 use viz_core::{
     http::{
         header,
@@ -12,7 +14,7 @@ use viz_core::{
 };
 use viz_utils::{
     futures::{future, SinkExt, StreamExt},
-    serde::json,
+    serde::json::Value,
 };
 
 /// The Sec-Websocket-Protocol header.
@@ -30,15 +32,14 @@ impl Header for SecWebsocketProtocol {
         I: Iterator<Item = &'i HeaderValue>,
     {
         match values.next() {
-            Some(value) => {
-                let value = value.to_str().map_err(|_| headers::Error::invalid())?;
-                Ok(SecWebsocketProtocol(
-                    value
-                        .parse()
-                        .ok()
-                        .unwrap_or(WebSocketProtocols::SubscriptionsTransportWS),
-                ))
-            }
+            Some(value) => Ok(SecWebsocketProtocol(
+                value
+                    .to_str()
+                    .map_err(|_| headers::Error::invalid())?
+                    .parse()
+                    .ok()
+                    .unwrap_or(WebSocketProtocols::SubscriptionsTransportWS),
+            )),
             None => Err(headers::Error::invalid()),
         }
     }
@@ -78,7 +79,7 @@ pub async fn graphql_subscription_with_data<Query, Mutation, Subscription, F, R>
     Query: ObjectType + 'static,
     Mutation: ObjectType + 'static,
     Subscription: SubscriptionType + 'static,
-    F: FnOnce(json::Value) -> R + Send + 'static,
+    F: FnOnce(Value) -> R + Send + 'static,
     R: Future<Output = Result<Data>> + Send + 'static,
 {
     let (mut sink, stream) = websocket.split();

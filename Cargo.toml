@@ -1,6 +1,6 @@
 [package]
 name = "async-graphql-viz"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Fangdun Tsai <cfddream@gmail.com>"]
 edition = "2018"
 description = "async-graphql for viz"
@@ -9,6 +9,9 @@ homepage = "https://github.com/viz-rs/async-graphql-viz"
 repository = "https://github.com/viz-rs/async-graphql-viz"
 keywords = ["futures", "async", "graphql", "viz"]
 categories = ["network-programming", "asynchronous"]
+
+[features]
+cbor = ["serde_cbor"]
 
 [dependencies]
 viz-core = { version = "0.1.0-alpha.11", features = ["ws"] }
