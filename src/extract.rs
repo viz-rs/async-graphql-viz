@@ -161,12 +161,12 @@ async fn receive_batch_multipart(mut multipart: Multipart) -> Result<async_graph
     let mut request = request.ok_or(ParseRequestError::MissingOperatorsPart)?;
     let map = map.as_mut().ok_or(ParseRequestError::MissingMapPart)?;
 
-    for (name, filename, content_type, file) in files {
+    for (name, filename, content_type, content) in files {
         if let Some(var_paths) = map.remove(&name) {
             let upload = async_graphql::UploadValue {
                 filename,
                 content_type,
-                content: file,
+                content,
             };
 
             for var_path in var_paths {
