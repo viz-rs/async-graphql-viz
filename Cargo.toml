@@ -2,13 +2,14 @@
 name = "async-graphql-viz"
 version = "0.1.5"
 authors = ["Fangdun Tsai <cfddream@gmail.com>"]
-edition = "2018"
 description = "async-graphql for viz"
-license = "MIT/Apache-2.0"
 homepage = "https://github.com/viz-rs/async-graphql-viz"
 repository = "https://github.com/viz-rs/async-graphql-viz"
 keywords = ["futures", "async", "graphql", "viz"]
 categories = ["network-programming", "asynchronous"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+edition = "2021"
 
 [features]
 cbor = ["serde_cbor"]
